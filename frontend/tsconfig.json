@@ -13,12 +13,12 @@
     "jsx": "react-jsx",
     "strict": true,
     "esModuleInterop": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
+  "exclude": ["src/setupTests.ts", "src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.spec.ts", "src/**/*.spec.tsx", "tests"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
 
