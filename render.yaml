@@ -2,7 +2,7 @@ services:
   - type: web
     name: blocktrust-backend
     env: python
-    rootDir: backend
+    # rootDir removido para build na raiz
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
@@ -11,7 +11,7 @@ services:
   - type: worker
     name: blocktrust-listener
     env: python
-    rootDir: backend
+    # rootDir removido para build na raiz
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python listener.py
@@ -20,7 +20,7 @@ services:
   - type: worker
     name: blocktrust-monitor
     env: python
-    rootDir: backend
+    # rootDir removido para build na raiz
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python monitor.py
