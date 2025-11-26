@@ -114,4 +114,30 @@ services:
           name: bts-blocktrust
           type: web
           envVarKey: ALERT_WEBHOOK_URL
+  - type: web
+    name: blocktrust-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    autoDeploy: true
+    plan: free
+
+  - type: worker
+    name: blocktrust-listener
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python listener.py
+    autoDeploy: true
+    plan: free
+
+  - type: worker
+    name: blocktrust-monitor
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python monitor.py
+    autoDeploy: true
+    plan: free
 
