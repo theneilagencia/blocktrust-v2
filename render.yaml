@@ -1,6 +1,36 @@
 services:
   # Web Service - API Principal
   - type: web
+    name: blocktrust-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    autoDeploy: true
+    plan: free
+
+  # Background Worker - Blockchain Event Listener
+  - type: worker
+    name: blocktrust-listener
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python listener.py
+    autoDeploy: true
+    plan: free
+
+  # Background Worker - System Monitor
+  - type: worker
+    name: blocktrust-monitor
+  env: python
+  rootDir: backend
+  buildCommand: pip install -r requirements.txt
+  startCommand: python monitor.py
+  autoDeploy: true
+  plan: free
+services:
+  # Web Service - API Principal
+  - type: web
     name: bts-blocktrust
     env: python
     plan: starter
