@@ -24,7 +24,14 @@ from api.routes.mfa_routes import mfa_bp
 from api.routes.push import push_bp
 
 app = Flask(__name__, static_folder="static", static_url_path="")
-CORS(app)
+
+# Configurar CORS para produção
+# CORS_ORIGINS pode ser uma lista separada por vírgulas de origens permitidas
+cors_origins = os.getenv('CORS_ORIGINS', '*')
+if cors_origins != '*':
+    cors_origins = [origin.strip() for origin in cors_origins.split(',')]
+
+CORS(app, origins=cors_origins, supports_credentials=True, allow_headers=['Content-Type', 'Authorization', 'X-Requested-With'])
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')

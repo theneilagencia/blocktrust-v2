@@ -453,7 +453,9 @@ def kyc_webhook():
     """
     try:
         # Verifica assinatura do webhook
-        signature = request.headers.get('X-Payload-Signature')
+        # Sumsub usa X-Payload-Digest (formato: sha256=hash ou apenas hash)
+        # Também verificamos X-Payload-Signature para compatibilidade
+        signature = request.headers.get('X-Payload-Digest') or request.headers.get('X-Payload-Signature')
         payload = request.get_data()
         
         if not verify_webhook_signature(payload, signature):

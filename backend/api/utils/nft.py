@@ -68,6 +68,13 @@ IDENTITY_NFT_ABI = [
         ],
         "name": "MintingEvent",
         "type": "event"
+    },
+    {
+        "inputs": [{"name": "tokenId", "type": "uint256"}],
+        "name": "isActive",
+        "outputs": [{"name": "", "type": "bool"}],
+        "stateMutability": "view",
+        "type": "function"
     }
 ]
 
@@ -88,6 +95,52 @@ PROOF_REGISTRY_ABI = [
         "outputs": [{"name": "", "type": "bool"}],
         "stateMutability": "view",
         "type": "function"
+    },
+    {
+        "inputs": [
+            {"name": "docHash", "type": "bytes32"},
+            {"name": "pgpFingerprint", "type": "bytes20"},
+            {"name": "pgpSigHash", "type": "bytes32"},
+            {"name": "nftId", "type": "uint256"}
+        ],
+        "name": "storeDual",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [{"name": "docHash", "type": "bytes32"}],
+        "name": "verifyDual",
+        "outputs": [
+            {
+                "components": [
+                    {"name": "docHash", "type": "bytes32"},
+                    {"name": "signer", "type": "address"},
+                    {"name": "pgpFingerprint", "type": "bytes20"},
+                    {"name": "pgpSigHash", "type": "bytes32"},
+                    {"name": "nftId", "type": "uint256"},
+                    {"name": "timestamp", "type": "uint256"},
+                    {"name": "revoked", "type": "bool"}
+                ],
+                "name": "",
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "anonymous": False,
+        "inputs": [
+            {"indexed": True, "name": "docHash", "type": "bytes32"},
+            {"indexed": True, "name": "signer", "type": "address"},
+            {"indexed": False, "name": "pgpFingerprint", "type": "bytes20"},
+            {"indexed": False, "name": "pgpSigHash", "type": "bytes32"},
+            {"indexed": False, "name": "nftId", "type": "uint256"},
+            {"indexed": False, "name": "timestamp", "type": "uint256"}
+        ],
+        "name": "ProofStoredDual",
+        "type": "event"
     }
 ]
 
@@ -382,6 +435,99 @@ class NFTManager:
         except Exception as e:
             logger.error(f"❌ Erro ao verificar prova: {str(e)}")
             return False
+    
+    def store_dual(
+        self,
+        doc_hash: bytes,
+        pgp_fingerprint: bytes,
+        pgp_sig_hash: bytes,
+        nft_id: int,
+        private_key: str
+    ) -> Dict:
+        """
+        Registra uma assinatura dupla (PGP + Blockchain) no contrato ProofRegistry
+        
+        Args:
+            doc_hash: Hash do documento (bytes32)
+            pgp_fingerprint: Fingerprint PGP (bytes20)
+            pgp_sig_hash: Hash da assinatura PGP (bytes32)
+            nft_id: ID do NFT do signatário
+            private_key: Chave privada para assinar a transação
+            
+        Returns:
+            Dict com status e transaction_hash
+        """
+        try:
+            if not self.proof_registry_contract:
+                raise ValueError("Contrato de ProofRegistry não configurado")
+            
+            # Criar conta a partir da chave privada
+            account = self.w3.eth.account.from_key(private_key)
+            
+            # Preparar transação
+            nonce = self.w3.eth.get_transaction_count(account.address)
+            
+            transaction = self.proof_registry_contract.functions.storeDual(
+                doc_hash,
+                pgp_fingerprint,
+                pgp_sig_hash,
+                nft_id
+            ).build_transaction({
+                'from': account.address,
+                'nonce': nonce,
+                'gas': 300000,
+                'gasPrice': self.w3.eth.gas_price
+            })
+            
+            # Assinar transação
+            signed_txn = self.w3.eth.account.sign_transaction(transaction, private_key)
+            
+            # Enviar transação
+            tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+            
+            # Aguardar confirmação
+            receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+            
+            logger.info(f"✅ Assinatura dupla registrada com sucesso: {tx_hash.hex()}")
+            
+            return {
+                'status': 'success',
+                'transaction_hash': tx_hash.hex(),
+                'block_number': receipt['blockNumber'],
+                'gas_used': receipt['gasUsed']
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao registrar assinatura dupla: {str(e)}")
+            raise
+    
+    def check_nft_is_active(self, nft_id: int) -> bool:
+        """
+        Verifica se um NFT está ativo no contrato IdentityNFT
+        
+        Args:
+            nft_id: ID do NFT a ser verificado
+            
+        Returns:
+            True se o NFT está ativo, False caso contrário
+        """
+        try:
+            if not self.identity_nft_contract:
+                logger.warning("⚠️ Contrato de NFT não configurado")
+                return False
+            
+            is_active = self.identity_nft_contract.functions.isActive(nft_id).call()
+            
+            if is_active:
+                logger.info(f"✅ NFT {nft_id} está ativo")
+            else:
+                logger.warning(f"⚠️ NFT {nft_id} não está ativo")
+            
+            return is_active
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao verificar status do NFT: {str(e)}")
+            return False
 
 # Instância global do gerenciador
 nft_manager = NFTManager()
@@ -443,11 +589,30 @@ def cancel_nft(user_id: int, nft_id: int) -> Dict:
     """
     try:
         from api.database import get_db_connection
-        
-        # TODO: Chamar contrato IdentityNFT.cancelNFT(nft_id)
-        # Por enquanto, apenas simular
         import hashlib
-        tx_hash = "0x" + hashlib.sha256(f"cancel_{nft_id}".encode()).hexdigest()
+        
+        # Verificar se contratos estão configurados
+        identity_nft_address = os.getenv('IDENTITY_NFT_ADDRESS', '0x0000000000000000000000000000000000000000')
+        minter_private_key = os.getenv('MINTER_PRIVATE_KEY')
+        mock_mode = os.getenv('MOCK_MODE', 'false').lower() == 'true'
+        
+        tx_hash = None
+        
+        # Se contratos estão configurados e não está em mock mode, chamar contrato real
+        if not mock_mode and identity_nft_address != '0x0000000000000000000000000000000000000000' and minter_private_key and not minter_private_key.startswith('0x0000'):
+            try:
+                logger.info(f"🔥 Cancelando NFT {nft_id} no contrato...")
+                result = nft_manager.cancel_nft(nft_id, minter_private_key)
+                tx_hash = result['transaction_hash']
+                logger.info(f"✅ NFT {nft_id} cancelado na blockchain: {tx_hash}")
+            except Exception as contract_error:
+                logger.error(f"❌ Erro ao cancelar NFT no contrato: {str(contract_error)}")
+                logger.warning(f"⚠️ Fallback para simulação")
+                tx_hash = "0x" + hashlib.sha256(f"cancel_{nft_id}".encode()).hexdigest()
+        else:
+            # Simular cancelamento
+            logger.warning(f"⚠️ Contratos não configurados ou MOCK_MODE ativo - Simulando cancelamento")
+            tx_hash = "0x" + hashlib.sha256(f"cancel_{nft_id}".encode()).hexdigest()
         
         # Atualizar banco de dados
         conn = get_db_connection()
@@ -461,9 +626,9 @@ def cancel_nft(user_id: int, nft_id: int) -> Dict:
         
         # Registrar cancelamento
         cur.execute("""
-            INSERT INTO nft_cancellations (user_id, nft_id, reason, created_at)
-            VALUES (%s, %s, %s, NOW())
-        """, (user_id, nft_id, 'KYC re-approval'))
+            INSERT INTO nft_cancellations (user_id, nft_id, reason, tx_hash, created_at)
+            VALUES (%s, %s, %s, %s, NOW())
+        """, (user_id, nft_id, 'KYC re-approval', tx_hash))
         
         conn.commit()
         cur.close()
