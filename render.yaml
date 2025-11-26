@@ -2,6 +2,7 @@ services:
   - type: web
     name: blocktrust-backend
     env: python
+    pythonVersion: 3.10.13
     rootDir: backend
     plan: free
     buildCommand: pip install -r requirements.txt
@@ -11,6 +12,7 @@ services:
   - type: worker
     name: blocktrust-listener
     env: python
+    pythonVersion: 3.10.13
     rootDir: backend
     plan: free
     buildCommand: pip install -r requirements.txt
@@ -20,6 +22,7 @@ services:
   - type: worker
     name: blocktrust-monitor
     env: python
+    pythonVersion: 3.10.13
     rootDir: backend
     plan: free
     buildCommand: pip install -r requirements.txt
