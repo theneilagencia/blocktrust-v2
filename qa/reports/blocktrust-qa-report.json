@@ -1,0 +1,261 @@
+{
+  "timestamp": "2025-10-27T17:37:29.134823",
+  "tests": [
+    {
+      "module": "Backend",
+      "test": "Health Check",
+      "status": "\u2705 PASS",
+      "latency_ms": 301.08,
+      "details": "Status 200",
+      "timestamp": "2025-10-27T17:37:29.436015"
+    },
+    {
+      "module": "Auth",
+      "test": "Registro de Usu\u00e1rio",
+      "status": "\u2705 PASS",
+      "latency_ms": 671.52,
+      "details": "Status 201",
+      "timestamp": "2025-10-27T17:37:30.108748"
+    },
+    {
+      "module": "Auth",
+      "test": "Login de Usu\u00e1rio",
+      "status": "\u2705 PASS",
+      "latency_ms": 728.64,
+      "details": "Status 200",
+      "timestamp": "2025-10-27T17:37:30.837572"
+    },
+    {
+      "module": "Auth",
+      "test": "Login Inv\u00e1lido (deve falhar)",
+      "status": "\u2705 PASS",
+      "latency_ms": 629.44,
+      "details": "Status 401",
+      "timestamp": "2025-10-27T17:37:31.468782"
+    },
+    {
+      "module": "Auth",
+      "test": "Acesso sem Token (deve falhar)",
+      "status": "\u2705 PASS",
+      "latency_ms": 180.86,
+      "details": "Status 401",
+      "timestamp": "2025-10-27T17:37:31.650956"
+    },
+    {
+      "module": "Auth",
+      "test": "Token Inv\u00e1lido (deve falhar)",
+      "status": "\u2705 PASS",
+      "latency_ms": 196.52,
+      "details": "Status 401",
+      "timestamp": "2025-10-27T17:37:31.848831"
+    },
+    {
+      "module": "KYC",
+      "test": "Inicializar KYC",
+      "status": "\u2705 PASS",
+      "latency_ms": 459.77,
+      "details": "Status 200",
+      "timestamp": "2025-10-27T17:37:32.309988"
+    },
+    {
+      "module": "KYC",
+      "test": "Consultar Status KYC",
+      "status": "\u2705 PASS",
+      "latency_ms": 230.95,
+      "details": "Status 200",
+      "timestamp": "2025-10-27T17:37:32.542359"
+    },
+    {
+      "module": "KYC",
+      "test": "Consultar Liveness Status",
+      "status": "\u2705 PASS",
+      "latency_ms": 375.66,
+      "details": "Status 200",
+      "timestamp": "2025-10-27T17:37:32.919152"
+    },
+    {
+      "module": "KYC",
+      "test": "Webhook Sumsub (simulado)",
+      "status": "\u2705 PASS",
+      "latency_ms": 465.61,
+      "details": "Status 200",
+      "timestamp": "2025-10-27T17:37:33.385966"
+    },
+    {
+      "module": "Security",
+      "test": "Webhook sem Assinatura (deve falhar)",
+      "status": "\u2705 PASS",
+      "latency_ms": 187.75,
+      "details": "Status 401",
+      "timestamp": "2025-10-27T17:37:33.574858"
+    },
+    {
+      "module": "Security",
+      "test": "Webhook com Assinatura Inv\u00e1lida",
+      "status": "\u2705 PASS",
+      "latency_ms": 254.93,
+      "details": "Status 200",
+      "timestamp": "2025-10-27T17:37:33.830966"
+    },
+    {
+      "module": "Blockchain",
+      "test": "Verificar Documento",
+      "status": "\u2705 PASS",
+      "latency_ms": 6357.88,
+      "details": "Status 200",
+      "timestamp": "2025-10-27T17:37:40.190065"
+    },
+    {
+      "module": "Blockchain",
+      "test": "Registrar Assinatura",
+      "status": "\u2705 PASS",
+      "latency_ms": 6233.76,
+      "details": "Status 200",
+      "timestamp": "2025-10-27T17:37:46.425051"
+    },
+    {
+      "module": "Blockchain",
+      "test": "Mint Identity",
+      "status": "\u2705 PASS",
+      "latency_ms": 6455.85,
+      "details": "Status 200",
+      "timestamp": "2025-10-27T17:37:52.882087"
+    },
+    {
+      "module": "Failsafe",
+      "test": "Ativar Bot\u00e3o de P\u00e2nico",
+      "status": "\u2705 PASS",
+      "latency_ms": 413.19,
+      "details": "Status 200",
+      "timestamp": "2025-10-27T17:37:53.296604"
+    },
+    {
+      "module": "Failsafe",
+      "test": "P\u00e2nico sem Autentica\u00e7\u00e3o (deve falhar)",
+      "status": "\u2705 PASS",
+      "latency_ms": 292.76,
+      "details": "Status 401",
+      "timestamp": "2025-10-27T17:37:53.590987"
+    },
+    {
+      "module": "Failsafe",
+      "test": "P\u00e2nico com Dados Parciais",
+      "status": "\u2705 PASS",
+      "latency_ms": 532.83,
+      "details": "Status 200",
+      "timestamp": "2025-10-27T17:37:54.125105"
+    },
+    {
+      "module": "Security",
+      "test": "SQL Injection (deve falhar)",
+      "status": "\u2705 PASS",
+      "latency_ms": 233.8,
+      "details": "Status 400",
+      "timestamp": "2025-10-27T17:37:54.360353"
+    },
+    {
+      "module": "Security",
+      "test": "XSS no Email (deve falhar)",
+      "status": "\u2705 PASS",
+      "latency_ms": 182.38,
+      "details": "Status 400",
+      "timestamp": "2025-10-27T17:37:54.544037"
+    },
+    {
+      "module": "Security",
+      "test": "Registro sem Senha (deve falhar)",
+      "status": "\u2705 PASS",
+      "latency_ms": 182.0,
+      "details": "Status 400",
+      "timestamp": "2025-10-27T17:37:54.727403"
+    },
+    {
+      "module": "Security",
+      "test": "Login sem Email (deve falhar)",
+      "status": "\u2705 PASS",
+      "latency_ms": 164.43,
+      "details": "Status 400",
+      "timestamp": "2025-10-27T17:37:54.893101"
+    },
+    {
+      "module": "Frontend",
+      "test": "P\u00e1gina Inicial",
+      "status": "\u2705 PASS",
+      "latency_ms": 178.18,
+      "details": "HTML carregado",
+      "timestamp": "2025-10-27T17:37:55.072729"
+    },
+    {
+      "module": "Frontend",
+      "test": "Asset CSS",
+      "status": "\u2705 PASS",
+      "latency_ms": 192.61,
+      "details": "Carregado: /assets/index-DLGOwAYe.css",
+      "timestamp": "2025-10-27T17:37:55.437451"
+    },
+    {
+      "module": "Frontend",
+      "test": "Asset JS",
+      "status": "\u2705 PASS",
+      "latency_ms": 304.86,
+      "details": "Carregado: /assets/index-DUx0o7Ww.js",
+      "timestamp": "2025-10-27T17:37:55.742381"
+    },
+    {
+      "module": "Frontend",
+      "test": "Logo",
+      "status": "\u2705 PASS",
+      "latency_ms": 254.55,
+      "details": "Imagem carregada: /logo.png",
+      "timestamp": "2025-10-27T17:37:55.997017"
+    }
+  ],
+  "summary": {
+    "total": 26,
+    "passed": 26,
+    "failed": 0,
+    "warnings": 0
+  },
+  "latency": {
+    "Backend": [
+      301.0828495025635
+    ],
+    "Auth": [
+      671.5178489685059,
+      728.6431789398193,
+      629.4353008270264,
+      180.85622787475586,
+      196.52080535888672
+    ],
+    "KYC": [
+      459.77258682250977,
+      230.95464706420898,
+      375.6575584411621,
+      465.6069278717041
+    ],
+    "Security": [
+      187.74867057800293,
+      254.9302577972412,
+      233.79802703857422,
+      182.38306045532227,
+      181.99801445007324,
+      164.4268035888672
+    ],
+    "Blockchain": [
+      6357.8760623931885,
+      6233.7610721588135,
+      6455.850601196289
+    ],
+    "Failsafe": [
+      413.1929874420166,
+      292.76180267333984,
+      532.834529876709
+    ],
+    "Frontend": [
+      178.1766414642334,
+      192.6136016845703,
+      304.8579692840576,
+      254.54950332641602
+    ]
+  }
+}
