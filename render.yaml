@@ -1,17 +1,7 @@
 services:
   - type: web
     name: blocktrust-backend
-    env: python
-    # rootDir removido para build na raiz
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
-    autoDeploy: true
-services:
-  - type: web
-    name: blocktrust-backend
     env: docker
     rootDir: backend
     dockerfilePath: backend/Dockerfile
     autoDeploy: true
-    startCommand: python listener.py
