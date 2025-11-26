@@ -15,10 +15,13 @@ def apply_migrations():
     database_url = os.getenv('DATABASE_URL')
     
     if not database_url:
-        print("❌ DATABASE_URL não encontrada nas variáveis de ambiente")
+        print("DATABASE_URL nao encontrada nas variaveis de ambiente")
         return False
     
-    print("🔗 Conectando ao banco de dados...")
+    print("Conectando ao banco de dados...")
+    
+    conn = None
+    cur = None
     
     try:
         # Conectar ao banco
@@ -26,17 +29,17 @@ def apply_migrations():
         conn.autocommit = False
         cur = conn.cursor()
         
-        print("✅ Conectado com sucesso!")
+        print("Conectado com sucesso!")
         
         # Ler migration SQL
         migration_file = os.path.join(os.path.dirname(__file__), 'migrations', '001_complete_schema.sql')
         
-        print(f"📄 Lendo migration: {migration_file}")
+        print(f"Lendo migration: {migration_file}")
         
         with open(migration_file, 'r') as f:
             migration_sql = f.read()
         
-        print("🚀 Aplicando migration...")
+        print("Aplicando migration...")
         
         # Executar migration
         cur.execute(migration_sql)
@@ -44,7 +47,7 @@ def apply_migrations():
         # Commit
         conn.commit()
         
-        print("✅ Migration aplicada com sucesso!")
+        print("Migration aplicada com sucesso!")
         
         # Verificar tabelas criadas
         cur.execute("""
@@ -56,22 +59,25 @@ def apply_migrations():
         
         tables = cur.fetchall()
         
-        print(f"\n📊 Tabelas no banco de dados ({len(tables)}):")
+        print(f"Tabelas no banco de dados ({len(tables)}):")
         for table in tables:
             print(f"  - {table[0]}")
         
-        # Fechar conexão
+        # Fechar conexao
         cur.close()
         conn.close()
         
-        print("\n🎉 Todas as migrations foram aplicadas com sucesso!")
+        print("Todas as migrations foram aplicadas com sucesso!")
         return True
         
     except Exception as e:
-        print(f"❌ Erro ao aplicar migrations: {e}")
+        print(f"Erro ao aplicar migrations: {e}")
         if conn:
-            conn.rollback()
-            conn.close()
+            try:
+                conn.rollback()
+                conn.close()
+            except Exception:
+                pass
         return False
 
 if __name__ == '__main__':
