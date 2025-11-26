@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 export default function Explorer() {
@@ -29,18 +29,18 @@ export default function Explorer() {
   };
 
   // Logout
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('jwt_explorer');
     setToken('');
     setEvents([]);
     setStats(null);
-  };
+  }, []);
 
-  // Carregar eventos
-  const loadEvents = async () => {
+  // Carregar eventos - memoized with useCallback
+  const loadEvents = useCallback(async (authToken: string) => {
     try {
       const response = await axios.get('/api/explorer/events', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${authToken}` }
       });
       setEvents(response.data.events);
     } catch (err) {
@@ -49,43 +49,59 @@ export default function Explorer() {
         handleLogout();
       }
     }
-  };
+  }, [handleLogout]);
 
-  // Carregar estatísticas
-  const loadStats = async () => {
+  // Carregar estatísticas - memoized with useCallback
+  const loadStats = useCallback(async () => {
     try {
       const response = await axios.get('/api/explorer/stats');
       setStats(response.data.stats);
     } catch (err) {
       console.error('Erro ao carregar estatísticas:', err);
     }
-  };
+  }, []);
 
-  // Carregar contratos
-  const loadContracts = async () => {
+  // Carregar contratos - memoized with useCallback
+  const loadContracts = useCallback(async () => {
     try {
       const response = await axios.get('/api/explorer/contracts');
       setContracts(response.data.contracts);
     } catch (err) {
       console.error('Contratos não deployados:', err);
     }
-  };
+  }, []);
+
+  // Load all data in parallel for better performance
+  const loadAllData = useCallback(async (authToken: string) => {
+    await Promise.all([
+      loadEvents(authToken),
+      loadStats(),
+      loadContracts()
+    ]);
+  }, [loadEvents, loadStats, loadContracts]);
+
+  // Load events and stats in parallel for refresh
+  const refreshData = useCallback(async (authToken: string) => {
+    await Promise.all([
+      loadEvents(authToken),
+      loadStats()
+    ]);
+  }, [loadEvents, loadStats]);
 
   // Auto-refresh a cada 15 segundos
   useEffect(() => {
     if (token) {
-      loadEvents();
-      loadStats();
-      loadContracts();
+      // Initial load - all data in parallel
+      loadAllData(token);
       
+      // Periodic refresh - events and stats in parallel
       const interval = setInterval(() => {
-        loadEvents();
-        loadStats();
+        refreshData(token);
       }, 15000);
       
       return () => clearInterval(interval);
     }
-  }, [token]);
+  }, [token, loadAllData, refreshData]);
 
   // Tela de login
   if (!token) {
