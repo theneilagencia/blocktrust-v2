@@ -56,7 +56,7 @@ def init_kyc(current_user):
         cur.execute("""
             SELECT kyc_status, applicant_id, bio_hash_fingerprint, nft_token_id 
             FROM users 
-            WHERE user_id = %s
+            WHERE id = %s
         """, (user_id,))
         
         user_data = cur.fetchone()
@@ -95,7 +95,7 @@ def init_kyc(current_user):
                 kyc_status = 'PENDING',
                 kyc_started_at = NOW(),
                 updated_at = NOW()
-            WHERE user_id = %s
+            WHERE id = %s
         """, (applicant_id, user_id))
         
         conn.commit()
@@ -154,7 +154,7 @@ def get_kyc_status(current_user):
             SELECT applicant_id, kyc_status, bio_hash_fingerprint, 
                    nft_token_id, wallet_address, kyc_completed_at
             FROM users 
-            WHERE user_id = %s
+            WHERE id = %s
         """, (user_id,))
         
         user_data = cur.fetchone()
@@ -208,7 +208,7 @@ def get_kyc_status(current_user):
                             wallet_address = %s,
                             kyc_completed_at = NOW(),
                             updated_at = NOW()
-                        WHERE user_id = %s
+                        WHERE id = %s
                     """, (bio_hash_fingerprint, wallet_address, user_id))
                     
                     conn.commit()
@@ -282,7 +282,7 @@ def mint_identity_nft_endpoint(current_user):
             SELECT applicant_id, kyc_status, nft_token_id, 
                    bio_hash_fingerprint, name, document_number
             FROM users 
-            WHERE user_id = %s
+            WHERE id = %s
         """, (user_id,))
         
         user_data = cur.fetchone()
@@ -327,7 +327,7 @@ def mint_identity_nft_endpoint(current_user):
                 nft_tx_hash = %s,
                 nft_minted_at = NOW(),
                 updated_at = NOW()
-            WHERE user_id = %s
+            WHERE id = %s
         """, (token_id, tx_hash, user_id))
         
         conn.commit()
@@ -508,7 +508,7 @@ def kyc_webhook():
                         wallet_address = %s,
                         kyc_completed_at = NOW(),
                         updated_at = NOW()
-                    WHERE user_id = %s
+                    WHERE id = %s
                 """, (bio_hash_fingerprint, wallet_address, user_id))
                 
                 conn.commit()
@@ -528,7 +528,7 @@ def kyc_webhook():
                 UPDATE users 
                 SET kyc_status = 'REJECTED',
                     updated_at = NOW()
-                WHERE user_id = %s
+                WHERE id = %s
             """, (user_id,))
             
             conn.commit()

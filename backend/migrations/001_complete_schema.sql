@@ -157,6 +157,43 @@ BEGIN
     END IF;
 END $$;
 
+-- Migration: Adicionar colunas KYC adicionais se não existirem (para bancos existentes)
+DO $$
+BEGIN
+    -- Coluna applicant_id (alias para kyc_applicant_id usado nas rotas)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'applicant_id') THEN
+        ALTER TABLE users ADD COLUMN applicant_id VARCHAR(255);
+    END IF;
+    -- Coluna bio_hash_fingerprint para armazenar hash do bioHash
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'bio_hash_fingerprint') THEN
+        ALTER TABLE users ADD COLUMN bio_hash_fingerprint VARCHAR(255);
+    END IF;
+    -- Coluna nft_token_id para armazenar ID do NFT
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'nft_token_id') THEN
+        ALTER TABLE users ADD COLUMN nft_token_id VARCHAR(255);
+    END IF;
+    -- Coluna nft_tx_hash para armazenar hash da transação do NFT
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'nft_tx_hash') THEN
+        ALTER TABLE users ADD COLUMN nft_tx_hash VARCHAR(255);
+    END IF;
+    -- Coluna kyc_started_at para armazenar data de início do KYC
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'kyc_started_at') THEN
+        ALTER TABLE users ADD COLUMN kyc_started_at TIMESTAMP;
+    END IF;
+    -- Coluna updated_at para armazenar data de última atualização
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'updated_at') THEN
+        ALTER TABLE users ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+    -- Coluna name para armazenar nome do usuário
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'name') THEN
+        ALTER TABLE users ADD COLUMN name VARCHAR(255);
+    END IF;
+    -- Coluna document_number para armazenar número do documento
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'document_number') THEN
+        ALTER TABLE users ADD COLUMN document_number VARCHAR(255);
+    END IF;
+END $$;
+
 -- Comentários das tabelas
 COMMENT ON TABLE users IS 'Tabela principal de usuários com todos os campos necessários';
 COMMENT ON TABLE events IS 'Eventos capturados da blockchain pelo listener';
