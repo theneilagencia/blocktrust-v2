@@ -34,7 +34,12 @@ CREATE TABLE IF NOT EXISTS users (
     
     -- Campos de Failsafe
     failsafe_password_hash VARCHAR(255),
-    failsafe_configured BOOLEAN DEFAULT FALSE
+    failsafe_configured BOOLEAN DEFAULT FALSE,
+    
+    -- Campos de MFA
+    mfa_enabled BOOLEAN DEFAULT FALSE,
+    mfa_secret VARCHAR(255),
+    backup_codes TEXT
 );
 
 -- Tabela de eventos blockchain
@@ -137,6 +142,20 @@ CREATE TABLE IF NOT EXISTS listener_heartbeat (
 INSERT INTO listener_heartbeat (last_block, last_heartbeat)
 VALUES (0, CURRENT_TIMESTAMP)
 ON CONFLICT DO NOTHING;
+
+-- Migration: Adicionar colunas MFA se não existirem (para bancos existentes)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'mfa_enabled') THEN
+        ALTER TABLE users ADD COLUMN mfa_enabled BOOLEAN DEFAULT FALSE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'mfa_secret') THEN
+        ALTER TABLE users ADD COLUMN mfa_secret VARCHAR(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'backup_codes') THEN
+        ALTER TABLE users ADD COLUMN backup_codes TEXT;
+    END IF;
+END $$;
 
 -- Comentários das tabelas
 COMMENT ON TABLE users IS 'Tabela principal de usuários com todos os campos necessários';
