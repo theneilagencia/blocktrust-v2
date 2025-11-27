@@ -88,11 +88,11 @@ export default function Dashboard() {
                     Verificação de Identidade (KYC)
                   </h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    {kycStatus === 'not_started' && 'Complete sua verificação de identidade para acessar todas as funcionalidades.'}
+                    {(kycStatus === 'not_started' || kycStatus === 'not_initiated') && 'Complete sua verificação de identidade para acessar todas as funcionalidades.'}
                     {kycStatus === 'pending' && 'Sua verificação está em análise. Aguarde a aprovação.'}
                     {kycStatus === 'rejected' && 'Sua verificação foi rejeitada. Tente novamente.'}
                   </p>
-                  {kycStatus === 'not_started' && (
+                  {(kycStatus === 'not_started' || kycStatus === 'not_initiated') && (
                     <Button onClick={() => navigate('/kyc')} size="sm">
                       Iniciar Verificação
                     </Button>
