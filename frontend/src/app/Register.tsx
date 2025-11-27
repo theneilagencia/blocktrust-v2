@@ -49,8 +49,8 @@ export default function Register() {
 
     try {
       await register(email, password, coercionPassword)
-      showToast('success', 'Conta criada com sucesso!')
-      navigate('/dashboard')
+      showToast('success', 'Conta criada com sucesso! Complete sua verificação de identidade.')
+      navigate('/kyc')
     } catch (error: any) {
       showToast('error', error.response?.data?.error || 'Erro ao criar conta')
     } finally {

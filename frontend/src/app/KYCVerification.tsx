@@ -149,7 +149,9 @@ export function KYCVerification() {
       }
       
       // Mensagens amigáveis para erros comuns
-      if (errorMessage.includes('HMAC') || errorMessage.includes('signature')) {
+      if (errorMessage.includes('license-key-exhausted') || errorMessage.includes('Not enough credit') || errorMessage.includes('sem créditos')) {
+        errorMessage = 'Verificação de identidade temporariamente indisponível. O sistema está sem créditos no provedor de KYC. Entre em contato com o suporte.';
+      } else if (errorMessage.includes('HMAC') || errorMessage.includes('signature')) {
         errorMessage = 'Erro de autenticação. Verifique suas credenciais.';
       } else if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
         errorMessage = 'Credenciais inválidas. Entre em contato com o suporte.';
