@@ -73,20 +73,22 @@ def init_kyc(current_user):
             })
         
         # Cria novo aplicante no Sumsub
-        applicant_data = create_applicant(
+        applicant_result = create_applicant(
             external_user_id=user_id,
             level_name='basic-kyc-level',  # Configurar no Sumsub
             email=user_email
         )
         
-        if not applicant_data:
-            logger.error(f"❌ Falha ao criar applicant para usuário {user_id}")
+        if not applicant_result or applicant_result.get('status') != 'success':
+            error_msg = applicant_result.get('message', 'Erro desconhecido') if applicant_result else 'Resposta vazia'
+            logger.error(f"❌ Falha ao criar applicant para usuário {user_id}: {error_msg}")
             return jsonify({
                 'error': 'Erro na inicialização',
-                'message': 'Não foi possível inicializar o processo de verificação'
+                'message': 'Não foi possível inicializar o processo de verificação',
+                'details': error_msg
             }), 500
         
-        applicant_id = applicant_data['id']
+        applicant_id = applicant_result['applicant_id']
         
         # Salva dados do aplicante (SEM chave privada!)
         cur.execute("""
