@@ -46,8 +46,8 @@ def init_kyc(current_user):
                 'details': error_msg
             }), 500
         
-        user_id = current_user['user_id']
-        user_email = current_user['email']
+        user_id = current_user.id
+        user_email = current_user.email
         
         # Verifica se usuário já tem identidade ativa
         conn = get_db_connection()
@@ -145,7 +145,7 @@ def get_kyc_status(current_user):
     Verifica status do KYC e retorna dados necessários para geração de wallet
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         conn = get_db_connection()
         cur = conn.cursor()
@@ -245,7 +245,7 @@ def mint_identity_nft_endpoint(current_user):
     Mint do NFT de identidade usando bioHash
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         data = request.get_json()
         
         required_fields = ['bio_hash', 'wallet_address']
@@ -568,7 +568,7 @@ def get_sumsub_token(current_user):
         applicantId: ID do aplicante
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         data = request.get_json()
         
         email = data.get('email')

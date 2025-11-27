@@ -17,7 +17,7 @@ def generate_temp_password(length=12):
 @token_required
 def list_users(current_user):
     """Lista todos os usuários (apenas admin/superadmin)"""
-    if current_user['role'] not in ['admin', 'superadmin']:
+    if current_user.role not in ['admin', 'superadmin']:
         return jsonify({'error': 'Acesso negado'}), 403
     
     try:
@@ -64,7 +64,7 @@ def list_users(current_user):
 @token_required
 def get_user(current_user, user_id):
     """Obtém detalhes de um usuário específico (apenas admin/superadmin)"""
-    if current_user['role'] not in ['admin', 'superadmin']:
+    if current_user.role not in ['admin', 'superadmin']:
         return jsonify({'error': 'Acesso negado'}), 403
     
     try:
@@ -119,7 +119,7 @@ def get_user(current_user, user_id):
 @token_required
 def update_user(current_user, user_id):
     """Atualiza informações de um usuário (apenas admin/superadmin)"""
-    if current_user['role'] not in ['admin', 'superadmin']:
+    if current_user.role not in ['admin', 'superadmin']:
         return jsonify({'error': 'Acesso negado'}), 403
     
     data = request.json
@@ -146,7 +146,7 @@ def update_user(current_user, user_id):
     
     if 'role' in data:
         # Apenas superadmin pode alterar roles
-        if current_user['role'] != 'superadmin':
+        if current_user.role != 'superadmin':
             return jsonify({'error': 'Apenas superadmin pode alterar roles'}), 403
         
         if data['role'] not in ['user', 'admin', 'superadmin']:
@@ -181,7 +181,7 @@ def update_user(current_user, user_id):
 @token_required
 def reset_user_password(current_user, user_id):
     """Reseta a senha de um usuário e envia por email (apenas admin/superadmin)"""
-    if current_user['role'] not in ['admin', 'superadmin']:
+    if current_user.role not in ['admin', 'superadmin']:
         return jsonify({'error': 'Acesso negado'}), 403
     
     try:
@@ -247,11 +247,11 @@ def reset_user_password(current_user, user_id):
 @token_required
 def delete_user(current_user, user_id):
     """Deleta um usuário (apenas superadmin)"""
-    if current_user['role'] != 'superadmin':
+    if current_user.role != 'superadmin':
         return jsonify({'error': 'Acesso negado. Apenas superadmin pode deletar usuários'}), 403
     
     # Não permitir deletar a si mesmo
-    if current_user['user_id'] == user_id:
+    if current_user.id == user_id:
         return jsonify({'error': 'Você não pode deletar sua própria conta'}), 400
     
     try:

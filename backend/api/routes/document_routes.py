@@ -47,7 +47,7 @@ def register_document(current_user):
         if len(doc_hash) != 66:
             return jsonify({'error': 'Hash inválido (deve ter 64 caracteres hexadecimais)'}), 400
         
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         # Obter dados da carteira
         conn = get_db_connection()
@@ -249,7 +249,7 @@ def document_history(current_user):
         JSON com lista de documentos registrados
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         conn = get_db_connection()
         cur = conn.cursor()

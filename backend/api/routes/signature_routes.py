@@ -46,7 +46,7 @@ def sign_document(current_user):
         if not password:
             return jsonify({'error': 'Senha é obrigatória'}), 400
         
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         # Obter dados da carteira e senha de emergência
         conn = get_db_connection()
@@ -321,7 +321,7 @@ def get_signature_history(current_user):
         JSON com lista de assinaturas
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         conn = get_db_connection()
         cur = conn.cursor()
@@ -384,7 +384,7 @@ def hash_file(current_user):
         # Gerar hash
         file_hash = hashlib.sha256(file_content.encode()).hexdigest()
         
-        logger.info(f"✅ Hash gerado para usuário {current_user['user_id']}: {file_hash[:16]}...")
+        logger.info(f"✅ Hash gerado para usuário {current_user.id}: {file_hash[:16]}...")
         
         return jsonify({
             'status': 'success',

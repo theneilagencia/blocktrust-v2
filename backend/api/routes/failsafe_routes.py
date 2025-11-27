@@ -39,7 +39,7 @@ def configure_failsafe(current_user):
         if current_password == failsafe_password:
             return jsonify({'error': 'Senha de emergência deve ser diferente da senha normal'}), 400
         
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         # Verificar senha atual
         conn = get_db_connection()
@@ -102,7 +102,7 @@ def get_failsafe_status(current_user):
         JSON com status
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         conn = get_db_connection()
         cur = conn.cursor()
