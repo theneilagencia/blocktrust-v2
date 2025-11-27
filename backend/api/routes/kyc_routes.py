@@ -72,10 +72,12 @@ def init_kyc(current_user):
                 'has_biohash': bool(user_data['bio_hash_fingerprint'])
             })
         
-        # Cria novo aplicante no Sumsub
+        # Cria novo aplicante no Sumsub (usa SUMSUB_LEVEL_NAME do ambiente ou None para usar o padrão)
+        import os
+        level_name = os.getenv('SUMSUB_LEVEL_NAME')
         applicant_result = create_applicant(
             external_user_id=user_id,
-            level_name='basic-kyc-level',  # Configurar no Sumsub
+            level_name=level_name,
             email=user_email
         )
         
