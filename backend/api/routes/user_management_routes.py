@@ -8,6 +8,55 @@ from api.utils.email_sender import send_email
 
 user_mgmt_bp = Blueprint('user_management', __name__)
 
+@user_mgmt_bp.route('/me', methods=['GET'])
+@token_required
+def get_my_profile(current_user):
+    """Obtém dados completos do usuário logado incluindo carteira e NFT"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute('''
+            SELECT 
+                id, 
+                email, 
+                role, 
+                status,
+                plan,
+                created_at,
+                kyc_status,
+                wallet_address,
+                nft_token_id,
+                nft_tx_hash,
+                nft_active
+            FROM users
+            WHERE id = %s
+        ''', (current_user.id,))
+        
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if not row:
+            return jsonify({'error': 'Usuário não encontrado'}), 404
+        
+        return jsonify({
+            'id': row['id'],
+            'email': row['email'],
+            'role': row['role'],
+            'status': row['status'] if row.get('status') else 'active',
+            'plan': row['plan'] if row.get('plan') else 'free',
+            'created_at': row['created_at'].isoformat() if row.get('created_at') else None,
+            'kyc_status': row['kyc_status'] if row.get('kyc_status') else 'not_initiated',
+            'wallet_address': row['wallet_address'],
+            'nft_token_id': row['nft_token_id'],
+            'nft_tx_hash': row['nft_tx_hash'],
+            'nft_active': row['nft_active'] if row.get('nft_active') else False
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Erro ao buscar perfil: {str(e)}'}), 500
+
 def generate_temp_password(length=12):
     """Gera uma senha temporária segura"""
     characters = string.ascii_letters + string.digits + "!@#$%&*"

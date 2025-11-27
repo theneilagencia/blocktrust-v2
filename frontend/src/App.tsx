@@ -5,6 +5,8 @@ import Register from './app/Register'
 import Dashboard from './app/Dashboard'
 import RegisterDoc from './app/RegisterDoc'
 import VerifyDoc from './app/VerifyDoc'
+import SignDocument from './app/SignDocument'
+import MyIdentity from './app/MyIdentity'
 import Admin from './app/Admin'
 import { KYCVerification } from './app/KYCVerification'
 import AdminLogin from './app/admin/AdminLogin'
@@ -39,7 +41,9 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
             <Route path="/registrar" element={<PrivateRoute><RegisterDoc /></PrivateRoute>} />
+            <Route path="/assinar" element={<PrivateRoute><SignDocument /></PrivateRoute>} />
             <Route path="/verificar" element={<PrivateRoute><VerifyDoc /></PrivateRoute>} />
+            <Route path="/identidade" element={<PrivateRoute><MyIdentity /></PrivateRoute>} />
             <Route path="/kyc" element={<PrivateRoute><KYCVerification /></PrivateRoute>} />
             <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
             <Route path="/admin/login" element={<AdminLogin />} />
