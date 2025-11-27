@@ -11,11 +11,26 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-SUMSUB_APP_TOKEN = os.getenv('SUMSUB_APP_TOKEN')
-SUMSUB_SECRET_KEY = os.getenv('SUMSUB_SECRET_KEY')
-SUMSUB_WEBHOOK_SECRET = os.getenv('SUMSUB_WEBHOOK_SECRET', SUMSUB_SECRET_KEY)
 SUMSUB_BASE_URL = 'https://api.sumsub.com'
-SUMSUB_LEVEL_NAME = os.getenv('SUMSUB_LEVEL_NAME', 'basic-kyc-level')
+
+def get_sumsub_config():
+    """Get Sumsub configuration at runtime to ensure env vars are loaded"""
+    return {
+        'app_token': os.getenv('SUMSUB_APP_TOKEN'),
+        'secret_key': os.getenv('SUMSUB_SECRET_KEY'),
+        'webhook_secret': os.getenv('SUMSUB_WEBHOOK_SECRET') or os.getenv('SUMSUB_SECRET_KEY'),
+        'level_name': os.getenv('SUMSUB_LEVEL_NAME', 'basic-kyc-level')
+    }
+
+# Legacy variables for backward compatibility (read at runtime via functions)
+def get_app_token():
+    return os.getenv('SUMSUB_APP_TOKEN')
+
+def get_secret_key():
+    return os.getenv('SUMSUB_SECRET_KEY')
+
+def get_level_name():
+    return os.getenv('SUMSUB_LEVEL_NAME', 'basic-kyc-level')
 
 def validate_credentials():
     """
@@ -24,9 +39,9 @@ def validate_credentials():
     Returns:
         Tuple (bool, str): (is_valid, error_message)
     """
-    if not SUMSUB_APP_TOKEN:
+    if not get_app_token():
         return False, "SUMSUB_APP_TOKEN não configurado"
-    if not SUMSUB_SECRET_KEY:
+    if not get_secret_key():
         return False, "SUMSUB_SECRET_KEY não configurado"
     return True, None
 
@@ -68,7 +83,8 @@ def generate_signature(method, url, body='', ts=None):
     Returns:
         Tupla (timestamp, signature)
     """
-    if not SUMSUB_SECRET_KEY:
+    secret_key = get_secret_key()
+    if not secret_key:
         raise ValueError("SUMSUB_SECRET_KEY não configurado")
     
     if ts is None:
@@ -81,7 +97,7 @@ def generate_signature(method, url, body='', ts=None):
     signature_string = f'{ts}{method.upper()}{url}{body}'
     
     signature = hmac.new(
-        SUMSUB_SECRET_KEY.encode('utf-8'),
+        secret_key.encode('utf-8'),
         signature_string.encode('utf-8'),
         hashlib.sha256
     ).hexdigest()
@@ -100,13 +116,14 @@ def get_headers(method, url, body=''):
     Returns:
         Dict com headers necessários
     """
-    if not SUMSUB_APP_TOKEN:
+    app_token = get_app_token()
+    if not app_token:
         raise ValueError("SUMSUB_APP_TOKEN não configurado")
     
     ts, signature = generate_signature(method, url, body)
     
     return {
-        'X-App-Token': SUMSUB_APP_TOKEN,
+        'X-App-Token': app_token,
         'X-App-Access-Ts': ts,
         'X-App-Access-Sig': signature,
         'Content-Type': 'application/json'
@@ -125,7 +142,7 @@ def create_applicant(external_user_id, email, level_name=None):
         Dict com status e dados do applicant ou erro detalhado
     """
     # CORREÇÃO: levelName deve ser passado como query parameter, não no body
-    level = level_name or SUMSUB_LEVEL_NAME
+    level = level_name or get_level_name()
     url = f'/resources/applicants?levelName={level}'
     method = 'POST'
     
@@ -216,7 +233,7 @@ def get_access_token(external_user_id, level_name=None, ttl_in_secs=600):
     if level_name:
         url += f'&levelName={level_name}'
     else:
-        url += f'&levelName={SUMSUB_LEVEL_NAME}'
+        url += f'&levelName={get_level_name()}'
     
     url += f'&ttlInSecs={ttl_in_secs}'
     
@@ -315,7 +332,8 @@ def verify_webhook_signature(request_body, signature_header):
         logger.warning("⚠️ Webhook sem cabeçalho X-Payload-Digest — ignorado.")
         return False
     
-    if not SUMSUB_SECRET_KEY:
+    secret_key = get_secret_key()
+    if not secret_key:
         logger.error("❌ SUMSUB_SECRET_KEY não configurado")
         return False
     
@@ -329,7 +347,7 @@ def verify_webhook_signature(request_body, signature_header):
         
         # Calcular assinatura esperada
         expected_signature = hmac.new(
-            SUMSUB_SECRET_KEY.encode('utf-8'),
+            secret_key.encode('utf-8'),
             request_body,
             hashlib.sha256
         ).hexdigest()
