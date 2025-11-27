@@ -44,17 +44,20 @@ def get_user_from_token(payload):
             if not result:
                 return None
             
+            # RealDictCursor returns dictionaries, so access by column name
             return User(
-                id=result[0],
-                email=result[1],
-                password_hash=result[2],
-                role=result[3],
-                created_at=result[4],
-                mfa_enabled=result[5],
-                mfa_secret=result[6],
-                backup_codes=result[7]
+                id=result['id'],
+                email=result['email'],
+                password_hash=result['password_hash'],
+                role=result['role'],
+                created_at=result['created_at'],
+                mfa_enabled=result['mfa_enabled'],
+                mfa_secret=result['mfa_secret'],
+                backup_codes=result['backup_codes']
             )
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.error(f"Error getting user from token: {str(e)}")
         return None
 
 
