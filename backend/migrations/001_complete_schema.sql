@@ -194,6 +194,57 @@ BEGIN
     END IF;
 END $$;
 
+-- Migration: Adicionar colunas faltantes na tabela document_signatures
+DO $$
+BEGIN
+    -- Coluna document_url para armazenar URL do documento
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'document_signatures' AND column_name = 'document_url') THEN
+        ALTER TABLE document_signatures ADD COLUMN document_url TEXT;
+    END IF;
+    -- Coluna signed_at para armazenar data de assinatura
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'document_signatures' AND column_name = 'signed_at') THEN
+        ALTER TABLE document_signatures ADD COLUMN signed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+END $$;
+
+-- Migration: Adicionar colunas faltantes na tabela failsafe_events
+DO $$
+BEGIN
+    -- Coluna message para armazenar mensagem do evento
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'failsafe_events' AND column_name = 'message') THEN
+        ALTER TABLE failsafe_events ADD COLUMN message TEXT;
+    END IF;
+    -- Coluna triggered_at para armazenar data de acionamento
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'failsafe_events' AND column_name = 'triggered_at') THEN
+        ALTER TABLE failsafe_events ADD COLUMN triggered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+    -- Coluna nft_cancelled para indicar se NFT foi cancelado
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'failsafe_events' AND column_name = 'nft_cancelled') THEN
+        ALTER TABLE failsafe_events ADD COLUMN nft_cancelled BOOLEAN DEFAULT FALSE;
+    END IF;
+END $$;
+
+-- Migration: Adicionar colunas faltantes na tabela nft_cancellations
+DO $$
+BEGIN
+    -- Coluna old_nft_id para armazenar ID antigo do NFT
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'nft_cancellations' AND column_name = 'old_nft_id') THEN
+        ALTER TABLE nft_cancellations ADD COLUMN old_nft_id VARCHAR(255);
+    END IF;
+    -- Coluna cancelled_at para armazenar data de cancelamento
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'nft_cancellations' AND column_name = 'cancelled_at') THEN
+        ALTER TABLE nft_cancellations ADD COLUMN cancelled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+END $$;
+
+-- Migration: Adicionar coluna last_failsafe_trigger na tabela users
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'last_failsafe_trigger') THEN
+        ALTER TABLE users ADD COLUMN last_failsafe_trigger TIMESTAMP;
+    END IF;
+END $$;
+
 -- Comentários das tabelas
 COMMENT ON TABLE users IS 'Tabela principal de usuários com todos os campos necessários';
 COMMENT ON TABLE events IS 'Eventos capturados da blockchain pelo listener';
