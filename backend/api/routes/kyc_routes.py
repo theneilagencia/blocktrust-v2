@@ -409,7 +409,7 @@ def recover_identity(current_user):
         bio_hash_fingerprint = hashlib.sha256(bio_hash.encode()).hexdigest()
         
         cur.execute("""
-            SELECT user_id, name, document_number, applicant_id, nft_token_id
+            SELECT id, name, document_number, applicant_id, nft_token_id
             FROM users 
             WHERE bio_hash_fingerprint = %s OR wallet_address = %s
         """, (bio_hash_fingerprint, wallet_address))
@@ -426,7 +426,7 @@ def recover_identity(current_user):
         
         if local_data:
             recovery_data.update({
-                'local_user_id': local_data['user_id'],
+                'local_user_id': local_data['id'],
                 'name': local_data['name'],
                 'document_number': local_data['document_number']
             })
@@ -480,7 +480,7 @@ def kyc_webhook():
         
         # Busca usuário pelo applicant_id
         cur.execute("""
-            SELECT user_id, kyc_status FROM users 
+            SELECT id, kyc_status FROM users 
             WHERE applicant_id = %s
         """, (applicant_id,))
         
@@ -490,7 +490,7 @@ def kyc_webhook():
             logger.warning(f"⚠️ Usuário não encontrado para applicant_id: {applicant_id}")
             return jsonify({'status': 'user_not_found'}), 404
         
-        user_id = user_data['user_id']
+        user_id = user_data['id']
         
         # Processa status
         if review_status == 'completed':
