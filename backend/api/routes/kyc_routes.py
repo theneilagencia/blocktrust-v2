@@ -111,24 +111,34 @@ def init_kyc(current_user):
             conn.commit()
         
         # Gera access token para o SDK (usa user_id como external_user_id)
-        access_token_data = get_access_token(str(user_id), level_name)
-        
-        if not access_token_data or not access_token_data.get('token'):
-            logger.error(f"❌ Falha ao gerar access token para usuário {user_id}")
+        try:
+            access_token_data = get_access_token(str(user_id), level_name)
+            
+            if not access_token_data or not access_token_data.get('token'):
+                logger.error(f"❌ Falha ao gerar access token para usuário {user_id}")
+                return jsonify({
+                    'error': 'Erro no token',
+                    'message': 'Não foi possível gerar token de acesso'
+                }), 500
+            
+            access_token = access_token_data['token']
+        except Exception as token_error:
+            logger.error(f"❌ Exceção ao gerar access token: {str(token_error)}")
             return jsonify({
                 'error': 'Erro no token',
-                'message': 'Não foi possível gerar token de acesso'
+                'message': f'Falha ao gerar token: {str(token_error)}'
             }), 500
         
-        access_token = access_token_data['token']
-        
-        # Log do evento
-        log_kyc_event(
-            user_id=user_id,
-            event_type='KYC_INITIATED',
-            applicant_id=applicant_id,
-            details={'system': 'self-custodial'}
-        )
+        # Log do evento (não crítico, não deve falhar a requisição)
+        try:
+            log_kyc_event(
+                user_id=user_id,
+                event_type='KYC_INITIATED',
+                applicant_id=applicant_id,
+                details={'system': 'self-custodial'}
+            )
+        except Exception as log_error:
+            logger.warning(f"⚠️ Falha ao registrar evento KYC (não crítico): {str(log_error)}")
         
         logger.info(f"✅ KYC iniciado para usuário {user_id}, applicant: {applicant_id}")
         
