@@ -89,7 +89,7 @@ export default function Dashboard() {
                   </h3>
                   <p className="text-sm text-gray-600 mb-4">
                     {(kycStatus === 'not_started' || kycStatus === 'not_initiated') && 'Complete sua verificação de identidade para acessar todas as funcionalidades.'}
-                    {kycStatus === 'pending' && 'Sua verificação está em análise. Aguarde a aprovação.'}
+                    {(kycStatus === 'pending' || kycStatus === 'init') && 'Sua verificação está em andamento. Continue o processo.'}
                     {kycStatus === 'rejected' && 'Sua verificação foi rejeitada. Tente novamente.'}
                   </p>
                   {(kycStatus === 'not_started' || kycStatus === 'not_initiated') && (
@@ -97,9 +97,9 @@ export default function Dashboard() {
                       Iniciar Verificação
                     </Button>
                   )}
-                  {kycStatus === 'pending' && (
-                    <Button onClick={() => navigate('/kyc')} variant="outline" size="sm">
-                      Ver Status
+                  {(kycStatus === 'pending' || kycStatus === 'init') && (
+                    <Button onClick={() => navigate('/kyc')} size="sm">
+                      Continuar Verificação
                     </Button>
                   )}
                   {kycStatus === 'rejected' && (
