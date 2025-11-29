@@ -1,14 +1,17 @@
 import { PrivyProvider as BasePrivyProvider } from '@privy-io/react-auth';
-import { WagmiProvider, createConfig, http } from 'wagmi';
-import { polygon, polygonAmoy } from 'wagmi/chains';
+import { WagmiConfig, createConfig, configureChains } from 'wagmi';
+import { polygon } from 'wagmi/chains';
+import { publicProvider } from 'wagmi/providers/public';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+const { chains, publicClient } = configureChains(
+  [polygon],
+  [publicProvider()]
+);
+
 const wagmiConfig = createConfig({
-  chains: [polygon, polygonAmoy],
-  transports: {
-    [polygon.id]: http(import.meta.env.VITE_POLYGON_RPC_URL || 'https://polygon-rpc.com'),
-    [polygonAmoy.id]: http(import.meta.env.VITE_POLYGON_AMOY_RPC_URL || 'https://rpc-amoy.polygon.technology'),
-  },
+  autoConnect: true,
+  publicClient,
 });
 
 const queryClient = new QueryClient();
@@ -44,14 +47,14 @@ export function PrivyProvider({ children }: PrivyProviderProps) {
           enabled: true,
         },
         loginMethods: ['email'],
-        supportedChains: [polygon, polygonAmoy],
+        supportedChains: [polygon],
       }}
     >
-      <WagmiProvider config={wagmiConfig}>
+      <WagmiConfig config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
           {children}
         </QueryClientProvider>
-      </WagmiProvider>
+      </WagmiConfig>
     </BasePrivyProvider>
   );
 }

@@ -8,6 +8,51 @@ from api.utils.email_sender import send_email
 
 user_mgmt_bp = Blueprint('user_management', __name__)
 
+@user_mgmt_bp.route('/me', methods=['GET'])
+@token_required
+def get_my_profile(current_user):
+    """Obtém dados completos do usuário logado incluindo carteira e NFT"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute('''
+            SELECT 
+                id, 
+                email, 
+                role, 
+                created_at,
+                kyc_status,
+                wallet_address,
+                nft_token_id,
+                nft_tx_hash,
+                nft_active
+            FROM users
+            WHERE id = %s
+        ''', (current_user.id,))
+        
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if not row:
+            return jsonify({'error': 'Usuário não encontrado'}), 404
+        
+        return jsonify({
+            'id': row['id'],
+            'email': row['email'],
+            'role': row['role'],
+            'created_at': row['created_at'].isoformat() if row.get('created_at') else None,
+            'kyc_status': row['kyc_status'] if row.get('kyc_status') else 'not_initiated',
+            'wallet_address': row['wallet_address'],
+            'nft_token_id': row['nft_token_id'],
+            'nft_tx_hash': row['nft_tx_hash'],
+            'nft_active': row['nft_active'] if row.get('nft_active') else False
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Erro ao buscar perfil: {str(e)}'}), 500
+
 def generate_temp_password(length=12):
     """Gera uma senha temporária segura"""
     characters = string.ascii_letters + string.digits + "!@#$%&*"
@@ -17,7 +62,7 @@ def generate_temp_password(length=12):
 @token_required
 def list_users(current_user):
     """Lista todos os usuários (apenas admin/superadmin)"""
-    if current_user['role'] not in ['admin', 'superadmin']:
+    if current_user.role not in ['admin', 'superadmin']:
         return jsonify({'error': 'Acesso negado'}), 403
     
     try:
@@ -64,7 +109,7 @@ def list_users(current_user):
 @token_required
 def get_user(current_user, user_id):
     """Obtém detalhes de um usuário específico (apenas admin/superadmin)"""
-    if current_user['role'] not in ['admin', 'superadmin']:
+    if current_user.role not in ['admin', 'superadmin']:
         return jsonify({'error': 'Acesso negado'}), 403
     
     try:
@@ -119,7 +164,7 @@ def get_user(current_user, user_id):
 @token_required
 def update_user(current_user, user_id):
     """Atualiza informações de um usuário (apenas admin/superadmin)"""
-    if current_user['role'] not in ['admin', 'superadmin']:
+    if current_user.role not in ['admin', 'superadmin']:
         return jsonify({'error': 'Acesso negado'}), 403
     
     data = request.json
@@ -146,7 +191,7 @@ def update_user(current_user, user_id):
     
     if 'role' in data:
         # Apenas superadmin pode alterar roles
-        if current_user['role'] != 'superadmin':
+        if current_user.role != 'superadmin':
             return jsonify({'error': 'Apenas superadmin pode alterar roles'}), 403
         
         if data['role'] not in ['user', 'admin', 'superadmin']:
@@ -181,7 +226,7 @@ def update_user(current_user, user_id):
 @token_required
 def reset_user_password(current_user, user_id):
     """Reseta a senha de um usuário e envia por email (apenas admin/superadmin)"""
-    if current_user['role'] not in ['admin', 'superadmin']:
+    if current_user.role not in ['admin', 'superadmin']:
         return jsonify({'error': 'Acesso negado'}), 403
     
     try:
@@ -247,11 +292,11 @@ def reset_user_password(current_user, user_id):
 @token_required
 def delete_user(current_user, user_id):
     """Deleta um usuário (apenas superadmin)"""
-    if current_user['role'] != 'superadmin':
+    if current_user.role != 'superadmin':
         return jsonify({'error': 'Acesso negado. Apenas superadmin pode deletar usuários'}), 403
     
     # Não permitir deletar a si mesmo
-    if current_user['user_id'] == user_id:
+    if current_user.id == user_id:
         return jsonify({'error': 'Você não pode deletar sua própria conta'}), 400
     
     try:

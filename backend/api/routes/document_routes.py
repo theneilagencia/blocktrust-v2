@@ -47,7 +47,7 @@ def register_document(current_user):
         if len(doc_hash) != 66:
             return jsonify({'error': 'Hash inválido (deve ter 64 caracteres hexadecimais)'}), 400
         
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         # Obter dados da carteira
         conn = get_db_connection()
@@ -61,12 +61,15 @@ def register_document(current_user):
         
         result = cur.fetchone()
         
-        if not result or not result[0]:
+        if not result or not result.get('wallet_address'):
             cur.close()
             conn.close()
-            return jsonify({'error': 'Usuário não possui carteira'}), 404
+            return jsonify({'error': 'Usuário não possui carteira. Complete a verificação de identidade (KYC) primeiro.'}), 404
         
-        wallet_address, encrypted_private_key, salt, nft_active = result
+        wallet_address = result['wallet_address']
+        encrypted_private_key = result['encrypted_private_key']
+        salt = result['wallet_salt']
+        nft_active = result['nft_active']
         
         # Verificar se tem NFT ativo
         if not nft_active:
@@ -223,11 +226,11 @@ def verify_document():
         
         if db_record:
             result['registration_info'] = {
-                'registered_by': db_record[0],
-                'document_name': db_record[1],
-                'document_url': db_record[2],
-                'registered_at': db_record[3].isoformat() if db_record[3] else None,
-                'blockchain_tx': db_record[4]
+                'registered_by': db_record['email'],
+                'document_name': db_record['document_name'],
+                'document_url': db_record['document_url'],
+                'registered_at': db_record['registered_at'].isoformat() if db_record.get('registered_at') else None,
+                'blockchain_tx': db_record['blockchain_tx']
             }
         
         return jsonify(result), 200
@@ -249,7 +252,7 @@ def document_history(current_user):
         JSON com lista de documentos registrados
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         conn = get_db_connection()
         cur = conn.cursor()
@@ -268,11 +271,11 @@ def document_history(current_user):
         documents = []
         for record in records:
             documents.append({
-                'file_hash': record[0],
-                'document_name': record[1],
-                'document_url': record[2],
-                'blockchain_tx': record[3],
-                'registered_at': record[4].isoformat() if record[4] else None
+                'file_hash': record['file_hash'],
+                'document_name': record['document_name'],
+                'document_url': record['document_url'],
+                'blockchain_tx': record['blockchain_tx'],
+                'registered_at': record['registered_at'].isoformat() if record.get('registered_at') else None
             })
         
         return jsonify({

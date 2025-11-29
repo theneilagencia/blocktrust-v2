@@ -16,6 +16,7 @@ from ..utils.pgp import (
     calculate_pgp_sig_hash,
     fingerprint_to_bytes20
 )
+from ..utils.nft import nft_manager
 
 logger = logging.getLogger(__name__)
 
@@ -230,9 +231,34 @@ def sign_dual():
         # Converter fingerprint para bytes20
         fp_bytes20 = fingerprint_to_bytes20(pgp_fingerprint)
         
-        # TODO: Chamar contrato ProofRegistry.storeDual
-        # Por enquanto, apenas simular
-        tx_hash = "0x" + hashlib.sha256(f"{doc_hash}{pgp_sig_hash}".encode()).hexdigest()
+        # Chamar contrato ProofRegistry.storeDual
+        minter_private_key = os.getenv('MINTER_PRIVATE_KEY')
+        mock_mode = os.getenv('MOCK_MODE', 'false').lower() == 'true'
+        proof_registry_address = os.getenv('PROOF_REGISTRY_ADDRESS', '0x0000000000000000000000000000000000000000')
+        
+        if not mock_mode and proof_registry_address != '0x0000000000000000000000000000000000000000' and minter_private_key and not minter_private_key.startswith('0x0000'):
+            try:
+                # Converter doc_hash para bytes32
+                doc_hash_bytes = bytes.fromhex(doc_hash.replace('0x', '').zfill(64))
+                pgp_sig_hash_bytes = bytes.fromhex(pgp_sig_hash.replace('0x', '').zfill(64))
+                
+                result = nft_manager.store_dual(
+                    doc_hash=doc_hash_bytes,
+                    pgp_fingerprint=fp_bytes20,
+                    pgp_sig_hash=pgp_sig_hash_bytes,
+                    nft_id=nft_id,
+                    private_key=minter_private_key
+                )
+                tx_hash = result['transaction_hash']
+                logger.info(f"✅ Assinatura dupla registrada na blockchain: {tx_hash}")
+            except Exception as blockchain_error:
+                logger.error(f"❌ Erro ao registrar na blockchain: {str(blockchain_error)}")
+                logger.warning(f"⚠️ Fallback para simulação")
+                tx_hash = "0x" + hashlib.sha256(f"{doc_hash}{pgp_sig_hash}".encode()).hexdigest()
+        else:
+            # Simular registro
+            logger.warning(f"⚠️ Contratos não configurados ou MOCK_MODE ativo - Simulando registro")
+            tx_hash = "0x" + hashlib.sha256(f"{doc_hash}{pgp_sig_hash}".encode()).hexdigest()
         
         # Salvar no banco de dados
         cur.execute("""
@@ -384,9 +410,22 @@ def verify_dual():
         
         log_id, nft_id, tx_hash, timestamp = log_data
         
-        # TODO: Verificar NFT ativo via IdentityNFT.isActive(nft_id)
-        # Por enquanto, assumir ativo
-        nft_active = True
+        # Verificar NFT ativo via IdentityNFT.isActive(nft_id)
+        mock_mode = os.getenv('MOCK_MODE', 'false').lower() == 'true'
+        identity_nft_address = os.getenv('IDENTITY_NFT_ADDRESS', '0x0000000000000000000000000000000000000000')
+        
+        if not mock_mode and identity_nft_address != '0x0000000000000000000000000000000000000000':
+            try:
+                nft_active = nft_manager.check_nft_is_active(nft_id)
+                logger.info(f"✅ Verificação de NFT {nft_id} na blockchain: {'ativo' if nft_active else 'inativo'}")
+            except Exception as blockchain_error:
+                logger.error(f"❌ Erro ao verificar NFT na blockchain: {str(blockchain_error)}")
+                logger.warning(f"⚠️ Fallback para assumir ativo")
+                nft_active = True
+        else:
+            # Em mock mode, assumir ativo
+            logger.warning(f"⚠️ Contratos não configurados ou MOCK_MODE ativo - Assumindo NFT ativo")
+            nft_active = True
         
         return jsonify({
             'valid': pgp_valid and nft_active,

@@ -48,7 +48,7 @@ def subscribe(current_user):
             return jsonify({'error': 'Subscription inválida'}), 400
         
         subscription = data['subscription']
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         # Salvar subscription
         subscriptions_store[user_id] = subscription

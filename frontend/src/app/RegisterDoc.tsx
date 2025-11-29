@@ -87,10 +87,19 @@ export default function RegisterDoc() {
     } catch (error: any) {
       console.error('❌ Erro ao registrar documento:', error)
       
-      const errorMessage = error.response?.data?.error 
+      let errorMessage = error.response?.data?.error 
         || error.response?.data?.message 
         || error.message 
         || 'Erro ao registrar documento'
+      
+      // Mensagens amigáveis para erros comuns
+      if (errorMessage.includes('NFT inativo') || errorMessage.includes('NFT ativo')) {
+        errorMessage = 'Você precisa concluir a verificação de identidade (KYC) para registrar documentos. Vá para o Painel e clique em "Iniciar Verificação".'
+      } else if (errorMessage.includes('carteira') || errorMessage.includes('wallet')) {
+        errorMessage = 'Você precisa concluir a verificação de identidade (KYC) para criar sua carteira e registrar documentos.'
+      } else if (errorMessage.includes('Senha incorreta')) {
+        errorMessage = 'Senha incorreta. Digite a mesma senha usada para criar sua conta.'
+      }
       
       showToast('error', errorMessage)
     } finally {

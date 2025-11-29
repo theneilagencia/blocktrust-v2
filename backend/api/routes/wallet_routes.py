@@ -34,7 +34,7 @@ def initialize_wallet(current_user):
             return jsonify({'error': 'Senha é obrigatória'}), 400
         
         # Verificar se usuário já tem carteira
-        user_id = current_user['user_id']
+        user_id = current_user.id
         conn = get_db_connection()
         cur = conn.cursor()
         
@@ -101,7 +101,7 @@ def get_wallet_info(current_user):
         JSON com wallet_id, address, public_key
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         conn = get_db_connection()
         cur = conn.cursor()
@@ -158,7 +158,7 @@ def sign_message(current_user):
         
         # Se failsafe, gerar assinatura fake
         if failsafe:
-            logger.warning(f"🚨 FAILSAFE ACIONADO por usuário {current_user['user_id']}")
+            logger.warning(f"🚨 FAILSAFE ACIONADO por usuário {current_user.id}")
             
             signature_data = wallet_manager.generate_failsafe_signature(message)
             
@@ -169,7 +169,7 @@ def sign_message(current_user):
             cur.execute("""
                 INSERT INTO failsafe_events (user_id, message, triggered_at)
                 VALUES (%s, %s, NOW())
-            """, (current_user['user_id'], message))
+            """, (current_user.id, message))
             
             conn.commit()
             cur.close()
@@ -185,7 +185,7 @@ def sign_message(current_user):
             return jsonify({'error': 'Senha é obrigatória'}), 400
         
         # Obter dados da carteira
-        user_id = current_user['user_id']
+        user_id = current_user.id
         conn = get_db_connection()
         cur = conn.cursor()
         
@@ -274,7 +274,7 @@ def export_public_key(current_user):
         JSON com address e public_key
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         conn = get_db_connection()
         cur = conn.cursor()

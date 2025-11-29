@@ -46,8 +46,8 @@ def init_kyc(current_user):
                 'details': error_msg
             }), 500
         
-        user_id = current_user['user_id']
-        user_email = current_user['email']
+        user_id = current_user.id
+        user_email = current_user.email
         
         # Verifica se usuário já tem identidade ativa
         conn = get_db_connection()
@@ -56,7 +56,7 @@ def init_kyc(current_user):
         cur.execute("""
             SELECT kyc_status, applicant_id, bio_hash_fingerprint, nft_token_id 
             FROM users 
-            WHERE user_id = %s
+            WHERE id = %s
         """, (user_id,))
         
         user_data = cur.fetchone()
@@ -72,58 +72,80 @@ def init_kyc(current_user):
                 'has_biohash': bool(user_data['bio_hash_fingerprint'])
             })
         
-        # Cria novo aplicante no Sumsub
-        applicant_data = create_applicant(
-            external_user_id=user_id,
-            level_name='basic-kyc-level',  # Configurar no Sumsub
-            email=user_email
-        )
+        import os
+        level_name = os.getenv('SUMSUB_LEVEL_NAME')
         
-        if not applicant_data:
-            logger.error(f"❌ Falha ao criar applicant para usuário {user_id}")
-            return jsonify({
-                'error': 'Erro na inicialização',
-                'message': 'Não foi possível inicializar o processo de verificação'
-            }), 500
+        # Verifica se usuário já tem applicant_id (já iniciou KYC antes)
+        if user_data and user_data.get('applicant_id'):
+            applicant_id = user_data['applicant_id']
+            logger.info(f"👤 Usuário {user_id} já tem applicant: {applicant_id}, gerando novo access token")
+        else:
+            # Cria novo aplicante no Sumsub
+            applicant_result = create_applicant(
+                external_user_id=user_id,
+                level_name=level_name,
+                email=user_email
+            )
+            
+            if not applicant_result or applicant_result.get('status') != 'success':
+                error_msg = applicant_result.get('message', 'Erro desconhecido') if applicant_result else 'Resposta vazia'
+                logger.error(f"❌ Falha ao criar applicant para usuário {user_id}: {error_msg}")
+                return jsonify({
+                    'error': 'Erro na inicialização',
+                    'message': 'Não foi possível inicializar o processo de verificação',
+                    'details': error_msg
+                }), 500
+            
+            applicant_id = applicant_result['applicant_id']
+            
+            # Salva dados do aplicante (SEM chave privada!)
+            cur.execute("""
+                UPDATE users 
+                SET applicant_id = %s, 
+                    kyc_status = 'PENDING',
+                    kyc_started_at = NOW(),
+                    updated_at = NOW()
+                WHERE id = %s
+            """, (applicant_id, user_id))
+            
+            conn.commit()
         
-        applicant_id = applicant_data['id']
-        
-        # Salva dados do aplicante (SEM chave privada!)
-        cur.execute("""
-            UPDATE users 
-            SET applicant_id = %s, 
-                kyc_status = 'PENDING',
-                kyc_started_at = NOW(),
-                updated_at = NOW()
-            WHERE user_id = %s
-        """, (applicant_id, user_id))
-        
-        conn.commit()
-        
-        # Gera access token para o SDK
-        access_token = get_access_token(applicant_id, 'one-time')
-        
-        if not access_token:
-            logger.error(f"❌ Falha ao gerar access token para {applicant_id}")
+        # Gera access token para o SDK (usa user_id como external_user_id)
+        try:
+            access_token_data = get_access_token(str(user_id), level_name)
+            
+            if not access_token_data or not access_token_data.get('token'):
+                logger.error(f"❌ Falha ao gerar access token para usuário {user_id}")
+                return jsonify({
+                    'error': 'Erro no token',
+                    'message': 'Não foi possível gerar token de acesso'
+                }), 500
+            
+            access_token = access_token_data['token']
+        except Exception as token_error:
+            logger.error(f"❌ Exceção ao gerar access token: {str(token_error)}")
             return jsonify({
                 'error': 'Erro no token',
-                'message': 'Não foi possível gerar token de acesso'
+                'message': f'Falha ao gerar token: {str(token_error)}'
             }), 500
         
-        # Log do evento
-        log_kyc_event(
-            user_id=user_id,
-            event_type='KYC_INITIATED',
-            applicant_id=applicant_id,
-            details={'system': 'self-custodial'}
-        )
+        # Log do evento (não crítico, não deve falhar a requisição)
+        try:
+            log_kyc_event(
+                user_id=user_id,
+                event_type='KYC_INITIATED',
+                applicant_id=applicant_id,
+                details={'system': 'self-custodial'}
+            )
+        except Exception as log_error:
+            logger.warning(f"⚠️ Falha ao registrar evento KYC (não crítico): {str(log_error)}")
         
         logger.info(f"✅ KYC iniciado para usuário {user_id}, applicant: {applicant_id}")
         
         return jsonify({
             'status': 'success',
-            'access_token': access_token,
-            'applicant_id': applicant_id,
+            'accessToken': access_token,
+            'applicantId': applicant_id,
             'message': 'Processo de verificação iniciado'
         })
         
@@ -145,7 +167,7 @@ def get_kyc_status(current_user):
     Verifica status do KYC e retorna dados necessários para geração de wallet
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         conn = get_db_connection()
         cur = conn.cursor()
@@ -154,7 +176,7 @@ def get_kyc_status(current_user):
             SELECT applicant_id, kyc_status, bio_hash_fingerprint, 
                    nft_token_id, wallet_address, kyc_completed_at
             FROM users 
-            WHERE user_id = %s
+            WHERE id = %s
         """, (user_id,))
         
         user_data = cur.fetchone()
@@ -208,7 +230,7 @@ def get_kyc_status(current_user):
                             wallet_address = %s,
                             kyc_completed_at = NOW(),
                             updated_at = NOW()
-                        WHERE user_id = %s
+                        WHERE id = %s
                     """, (bio_hash_fingerprint, wallet_address, user_id))
                     
                     conn.commit()
@@ -245,7 +267,7 @@ def mint_identity_nft_endpoint(current_user):
     Mint do NFT de identidade usando bioHash
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         data = request.get_json()
         
         required_fields = ['bio_hash', 'wallet_address']
@@ -282,7 +304,7 @@ def mint_identity_nft_endpoint(current_user):
             SELECT applicant_id, kyc_status, nft_token_id, 
                    bio_hash_fingerprint, name, document_number
             FROM users 
-            WHERE user_id = %s
+            WHERE id = %s
         """, (user_id,))
         
         user_data = cur.fetchone()
@@ -327,7 +349,7 @@ def mint_identity_nft_endpoint(current_user):
                 nft_tx_hash = %s,
                 nft_minted_at = NOW(),
                 updated_at = NOW()
-            WHERE user_id = %s
+            WHERE id = %s
         """, (token_id, tx_hash, user_id))
         
         conn.commit()
@@ -409,7 +431,7 @@ def recover_identity(current_user):
         bio_hash_fingerprint = hashlib.sha256(bio_hash.encode()).hexdigest()
         
         cur.execute("""
-            SELECT user_id, name, document_number, applicant_id, nft_token_id
+            SELECT id, name, document_number, applicant_id, nft_token_id
             FROM users 
             WHERE bio_hash_fingerprint = %s OR wallet_address = %s
         """, (bio_hash_fingerprint, wallet_address))
@@ -426,7 +448,7 @@ def recover_identity(current_user):
         
         if local_data:
             recovery_data.update({
-                'local_user_id': local_data['user_id'],
+                'local_user_id': local_data['id'],
                 'name': local_data['name'],
                 'document_number': local_data['document_number']
             })
@@ -453,7 +475,9 @@ def kyc_webhook():
     """
     try:
         # Verifica assinatura do webhook
-        signature = request.headers.get('X-Payload-Signature')
+        # Sumsub usa X-Payload-Digest (formato: sha256=hash ou apenas hash)
+        # Também verificamos X-Payload-Signature para compatibilidade
+        signature = request.headers.get('X-Payload-Digest') or request.headers.get('X-Payload-Signature')
         payload = request.get_data()
         
         if not verify_webhook_signature(payload, signature):
@@ -478,7 +502,7 @@ def kyc_webhook():
         
         # Busca usuário pelo applicant_id
         cur.execute("""
-            SELECT user_id, kyc_status FROM users 
+            SELECT id, kyc_status FROM users 
             WHERE applicant_id = %s
         """, (applicant_id,))
         
@@ -488,7 +512,7 @@ def kyc_webhook():
             logger.warning(f"⚠️ Usuário não encontrado para applicant_id: {applicant_id}")
             return jsonify({'status': 'user_not_found'}), 404
         
-        user_id = user_data['user_id']
+        user_id = user_data['id']
         
         # Processa status
         if review_status == 'completed':
@@ -506,7 +530,7 @@ def kyc_webhook():
                         wallet_address = %s,
                         kyc_completed_at = NOW(),
                         updated_at = NOW()
-                    WHERE user_id = %s
+                    WHERE id = %s
                 """, (bio_hash_fingerprint, wallet_address, user_id))
                 
                 conn.commit()
@@ -526,7 +550,7 @@ def kyc_webhook():
                 UPDATE users 
                 SET kyc_status = 'REJECTED',
                     updated_at = NOW()
-                WHERE user_id = %s
+                WHERE id = %s
             """, (user_id,))
             
             conn.commit()
@@ -566,7 +590,7 @@ def get_sumsub_token(current_user):
         applicantId: ID do aplicante
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         data = request.get_json()
         
         email = data.get('email')

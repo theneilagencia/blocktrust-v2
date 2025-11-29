@@ -46,7 +46,7 @@ def sign_document(current_user):
         if not password:
             return jsonify({'error': 'Senha é obrigatória'}), 400
         
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         # Obter dados da carteira e senha de emergência
         conn = get_db_connection()
@@ -61,12 +61,19 @@ def sign_document(current_user):
         
         result = cur.fetchone()
         
-        if not result or not result[0]:
+        if not result or not result.get('wallet_address'):
             cur.close()
             conn.close()
-            return jsonify({'error': 'Usuário não possui carteira'}), 404
+            return jsonify({'error': 'Usuário não possui carteira. Complete a verificação de identidade (KYC) primeiro.'}), 404
         
-        wallet_address, encrypted_private_key, salt, nft_id, nft_active, password_hash, failsafe_hash, failsafe_configured = result
+        wallet_address = result['wallet_address']
+        encrypted_private_key = result['encrypted_private_key']
+        salt = result['wallet_salt']
+        nft_id = result.get('nft_id')
+        nft_active = result.get('nft_active')
+        password_hash = result['password_hash']
+        failsafe_hash = result.get('failsafe_password_hash')
+        failsafe_configured = result.get('failsafe_configured')
         
         # DETECTAR AUTOMATICAMENTE SE É FAILSAFE
         import bcrypt
@@ -321,7 +328,7 @@ def get_signature_history(current_user):
         JSON com lista de assinaturas
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         conn = get_db_connection()
         cur = conn.cursor()
@@ -341,13 +348,13 @@ def get_signature_history(current_user):
         history = []
         for sig in signatures:
             history.append({
-                'file_hash': sig[0],
-                'signature': sig[1],
-                'document_name': sig[2],
-                'document_url': sig[3],
-                'failsafe': sig[4],
-                'blockchain_tx': sig[5],
-                'signed_at': sig[6].isoformat() if sig[6] else None
+                'file_hash': sig['file_hash'],
+                'signature': sig['signature'],
+                'document_name': sig['document_name'],
+                'document_url': sig['document_url'],
+                'failsafe': sig['failsafe'],
+                'blockchain_tx': sig['blockchain_tx'],
+                'signed_at': sig['signed_at'].isoformat() if sig.get('signed_at') else None
             })
         
         return jsonify({
@@ -384,7 +391,7 @@ def hash_file(current_user):
         # Gerar hash
         file_hash = hashlib.sha256(file_content.encode()).hexdigest()
         
-        logger.info(f"✅ Hash gerado para usuário {current_user['user_id']}: {file_hash[:16]}...")
+        logger.info(f"✅ Hash gerado para usuário {current_user.id}: {file_hash[:16]}...")
         
         return jsonify({
             'status': 'success',

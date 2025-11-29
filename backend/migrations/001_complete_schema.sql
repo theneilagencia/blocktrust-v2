@@ -34,7 +34,12 @@ CREATE TABLE IF NOT EXISTS users (
     
     -- Campos de Failsafe
     failsafe_password_hash VARCHAR(255),
-    failsafe_configured BOOLEAN DEFAULT FALSE
+    failsafe_configured BOOLEAN DEFAULT FALSE,
+    
+    -- Campos de MFA
+    mfa_enabled BOOLEAN DEFAULT FALSE,
+    mfa_secret VARCHAR(255),
+    backup_codes TEXT
 );
 
 -- Tabela de eventos blockchain
@@ -137,6 +142,108 @@ CREATE TABLE IF NOT EXISTS listener_heartbeat (
 INSERT INTO listener_heartbeat (last_block, last_heartbeat)
 VALUES (0, CURRENT_TIMESTAMP)
 ON CONFLICT DO NOTHING;
+
+-- Migration: Adicionar colunas MFA se não existirem (para bancos existentes)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'mfa_enabled') THEN
+        ALTER TABLE users ADD COLUMN mfa_enabled BOOLEAN DEFAULT FALSE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'mfa_secret') THEN
+        ALTER TABLE users ADD COLUMN mfa_secret VARCHAR(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'backup_codes') THEN
+        ALTER TABLE users ADD COLUMN backup_codes TEXT;
+    END IF;
+END $$;
+
+-- Migration: Adicionar colunas KYC adicionais se não existirem (para bancos existentes)
+DO $$
+BEGIN
+    -- Coluna applicant_id (alias para kyc_applicant_id usado nas rotas)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'applicant_id') THEN
+        ALTER TABLE users ADD COLUMN applicant_id VARCHAR(255);
+    END IF;
+    -- Coluna bio_hash_fingerprint para armazenar hash do bioHash
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'bio_hash_fingerprint') THEN
+        ALTER TABLE users ADD COLUMN bio_hash_fingerprint VARCHAR(255);
+    END IF;
+    -- Coluna nft_token_id para armazenar ID do NFT
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'nft_token_id') THEN
+        ALTER TABLE users ADD COLUMN nft_token_id VARCHAR(255);
+    END IF;
+    -- Coluna nft_tx_hash para armazenar hash da transação do NFT
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'nft_tx_hash') THEN
+        ALTER TABLE users ADD COLUMN nft_tx_hash VARCHAR(255);
+    END IF;
+    -- Coluna kyc_started_at para armazenar data de início do KYC
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'kyc_started_at') THEN
+        ALTER TABLE users ADD COLUMN kyc_started_at TIMESTAMP;
+    END IF;
+    -- Coluna updated_at para armazenar data de última atualização
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'updated_at') THEN
+        ALTER TABLE users ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+    -- Coluna name para armazenar nome do usuário
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'name') THEN
+        ALTER TABLE users ADD COLUMN name VARCHAR(255);
+    END IF;
+    -- Coluna document_number para armazenar número do documento
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'document_number') THEN
+        ALTER TABLE users ADD COLUMN document_number VARCHAR(255);
+    END IF;
+END $$;
+
+-- Migration: Adicionar colunas faltantes na tabela document_signatures
+DO $$
+BEGIN
+    -- Coluna document_url para armazenar URL do documento
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'document_signatures' AND column_name = 'document_url') THEN
+        ALTER TABLE document_signatures ADD COLUMN document_url TEXT;
+    END IF;
+    -- Coluna signed_at para armazenar data de assinatura
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'document_signatures' AND column_name = 'signed_at') THEN
+        ALTER TABLE document_signatures ADD COLUMN signed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+END $$;
+
+-- Migration: Adicionar colunas faltantes na tabela failsafe_events
+DO $$
+BEGIN
+    -- Coluna message para armazenar mensagem do evento
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'failsafe_events' AND column_name = 'message') THEN
+        ALTER TABLE failsafe_events ADD COLUMN message TEXT;
+    END IF;
+    -- Coluna triggered_at para armazenar data de acionamento
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'failsafe_events' AND column_name = 'triggered_at') THEN
+        ALTER TABLE failsafe_events ADD COLUMN triggered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+    -- Coluna nft_cancelled para indicar se NFT foi cancelado
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'failsafe_events' AND column_name = 'nft_cancelled') THEN
+        ALTER TABLE failsafe_events ADD COLUMN nft_cancelled BOOLEAN DEFAULT FALSE;
+    END IF;
+END $$;
+
+-- Migration: Adicionar colunas faltantes na tabela nft_cancellations
+DO $$
+BEGIN
+    -- Coluna old_nft_id para armazenar ID antigo do NFT
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'nft_cancellations' AND column_name = 'old_nft_id') THEN
+        ALTER TABLE nft_cancellations ADD COLUMN old_nft_id VARCHAR(255);
+    END IF;
+    -- Coluna cancelled_at para armazenar data de cancelamento
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'nft_cancellations' AND column_name = 'cancelled_at') THEN
+        ALTER TABLE nft_cancellations ADD COLUMN cancelled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+END $$;
+
+-- Migration: Adicionar coluna last_failsafe_trigger na tabela users
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'last_failsafe_trigger') THEN
+        ALTER TABLE users ADD COLUMN last_failsafe_trigger TIMESTAMP;
+    END IF;
+END $$;
 
 -- Comentários das tabelas
 COMMENT ON TABLE users IS 'Tabela principal de usuários com todos os campos necessários';

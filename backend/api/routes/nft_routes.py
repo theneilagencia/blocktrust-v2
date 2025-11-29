@@ -23,7 +23,7 @@ def get_nft_status(current_user):
         JSON com has_nft, nft_id, is_active
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         # Obter endereço da carteira
         conn = get_db_connection()
@@ -87,7 +87,7 @@ def mint_nft(current_user):
         if not password:
             return jsonify({'error': 'Senha é obrigatória'}), 400
         
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         # Obter dados da carteira
         conn = get_db_connection()
@@ -222,7 +222,7 @@ def cancel_nft(current_user):
         if not password:
             return jsonify({'error': 'Senha é obrigatória'}), 400
         
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         # Obter dados da carteira
         conn = get_db_connection()
@@ -302,7 +302,7 @@ def get_nft_history(current_user):
         JSON com lista de NFTs (ativos e cancelados)
     """
     try:
-        user_id = current_user['user_id']
+        user_id = current_user.id
         
         conn = get_db_connection()
         cur = conn.cursor()

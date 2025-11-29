@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { LogOut, Home, FileText, CheckCircle, Shield } from 'lucide-react'
+import { LogOut, Home, FileText, CheckCircle, Shield, PenTool, User } from 'lucide-react'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -34,9 +34,17 @@ export default function Layout({ children }: LayoutProps) {
                   <FileText className="w-5 h-5" />
                   <span>Registrar</span>
                 </Link>
+                <Link to="/assinar" className="flex items-center space-x-2 hover:text-gray-300 transition">
+                  <PenTool className="w-5 h-5" />
+                  <span>Assinar</span>
+                </Link>
                 <Link to="/verificar" className="flex items-center space-x-2 hover:text-gray-300 transition">
                   <CheckCircle className="w-5 h-5" />
                   <span>Verificar</span>
+                </Link>
+                <Link to="/identidade" className="flex items-center space-x-2 hover:text-gray-300 transition">
+                  <User className="w-5 h-5" />
+                  <span>Meu Token</span>
                 </Link>
                 {user.role === 'admin' && (
                   <Link to="/admin" className="flex items-center space-x-2 hover:text-gray-300 transition">
