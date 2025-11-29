@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
 import api from '../lib/api';
+import { useAuth } from '../lib/auth';
 
 declare global {
   interface Window {
@@ -20,6 +21,7 @@ interface KYCStatus {
 
 export function KYCVerification() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const [kycStatus, setKycStatus] = useState<KYCStatus | null>(null);
   const [error, setError] = useState('');
@@ -364,11 +366,14 @@ export function KYCVerification() {
                   {loading ? 'Iniciando...' : 'Iniciar Verificação'}
                 </Button>
                 <Button
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => {
+                    logout();
+                    navigate('/login');
+                  }}
                   variant="outline"
                   className="flex-1"
                 >
-                  Fazer Depois
+                  Sair
                 </Button>
               </div>
             </div>

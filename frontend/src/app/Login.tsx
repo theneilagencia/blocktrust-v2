@@ -6,6 +6,7 @@ import Button from '../components/Button'
 import Input from '../components/Input'
 import Card from '../components/Card'
 import { showToast } from '../components/Toaster'
+import api from '../lib/api'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -26,7 +27,21 @@ export default function Login() {
       if (userData.user?.role === 'superadmin' || userData.user?.role === 'admin') {
         navigate('/admin')
       } else {
-        navigate('/dashboard')
+        // Verificar status do KYC antes de redirecionar
+        try {
+          const kycResponse = await api.get('/kyc/status')
+          const kycStatus = kycResponse.data.status
+          
+          // Se KYC não está aprovado, redirecionar para página de KYC
+          if (kycStatus !== 'approved' && kycStatus !== 'APPROVED') {
+            navigate('/kyc')
+          } else {
+            navigate('/dashboard')
+          }
+        } catch (kycError) {
+          // Se erro ao buscar KYC (provavelmente não iniciado), redirecionar para KYC
+          navigate('/kyc')
+        }
       }
     } catch (error: any) {
       showToast('error', error.response?.data?.error || 'Erro ao fazer login')
