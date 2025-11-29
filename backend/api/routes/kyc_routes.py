@@ -72,47 +72,55 @@ def init_kyc(current_user):
                 'has_biohash': bool(user_data['bio_hash_fingerprint'])
             })
         
-        # Cria novo aplicante no Sumsub (usa SUMSUB_LEVEL_NAME do ambiente ou None para usar o padrão)
         import os
         level_name = os.getenv('SUMSUB_LEVEL_NAME')
-        applicant_result = create_applicant(
-            external_user_id=user_id,
-            level_name=level_name,
-            email=user_email
-        )
         
-        if not applicant_result or applicant_result.get('status') != 'success':
-            error_msg = applicant_result.get('message', 'Erro desconhecido') if applicant_result else 'Resposta vazia'
-            logger.error(f"❌ Falha ao criar applicant para usuário {user_id}: {error_msg}")
-            return jsonify({
-                'error': 'Erro na inicialização',
-                'message': 'Não foi possível inicializar o processo de verificação',
-                'details': error_msg
-            }), 500
+        # Verifica se usuário já tem applicant_id (já iniciou KYC antes)
+        if user_data and user_data.get('applicant_id'):
+            applicant_id = user_data['applicant_id']
+            logger.info(f"👤 Usuário {user_id} já tem applicant: {applicant_id}, gerando novo access token")
+        else:
+            # Cria novo aplicante no Sumsub
+            applicant_result = create_applicant(
+                external_user_id=user_id,
+                level_name=level_name,
+                email=user_email
+            )
+            
+            if not applicant_result or applicant_result.get('status') != 'success':
+                error_msg = applicant_result.get('message', 'Erro desconhecido') if applicant_result else 'Resposta vazia'
+                logger.error(f"❌ Falha ao criar applicant para usuário {user_id}: {error_msg}")
+                return jsonify({
+                    'error': 'Erro na inicialização',
+                    'message': 'Não foi possível inicializar o processo de verificação',
+                    'details': error_msg
+                }), 500
+            
+            applicant_id = applicant_result['applicant_id']
+            
+            # Salva dados do aplicante (SEM chave privada!)
+            cur.execute("""
+                UPDATE users 
+                SET applicant_id = %s, 
+                    kyc_status = 'PENDING',
+                    kyc_started_at = NOW(),
+                    updated_at = NOW()
+                WHERE id = %s
+            """, (applicant_id, user_id))
+            
+            conn.commit()
         
-        applicant_id = applicant_result['applicant_id']
+        # Gera access token para o SDK (usa user_id como external_user_id)
+        access_token_data = get_access_token(str(user_id), level_name)
         
-        # Salva dados do aplicante (SEM chave privada!)
-        cur.execute("""
-            UPDATE users 
-            SET applicant_id = %s, 
-                kyc_status = 'PENDING',
-                kyc_started_at = NOW(),
-                updated_at = NOW()
-            WHERE id = %s
-        """, (applicant_id, user_id))
-        
-        conn.commit()
-        
-        # Gera access token para o SDK
-        access_token = get_access_token(applicant_id, 'one-time')
-        
-        if not access_token:
-            logger.error(f"❌ Falha ao gerar access token para {applicant_id}")
+        if not access_token_data or not access_token_data.get('token'):
+            logger.error(f"❌ Falha ao gerar access token para usuário {user_id}")
             return jsonify({
                 'error': 'Erro no token',
                 'message': 'Não foi possível gerar token de acesso'
             }), 500
+        
+        access_token = access_token_data['token']
         
         # Log do evento
         log_kyc_event(
@@ -126,8 +134,8 @@ def init_kyc(current_user):
         
         return jsonify({
             'status': 'success',
-            'access_token': access_token,
-            'applicant_id': applicant_id,
+            'accessToken': access_token,
+            'applicantId': applicant_id,
             'message': 'Processo de verificação iniciado'
         })
         
